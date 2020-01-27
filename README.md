@@ -1,6 +1,14 @@
-<h1>Kobo scraper</h1>
+<h1 align="center">Kobo scraper</h1>
 
+<div align="center">
+  
 **Kobo scraper** is a Node.js service that uses puppeteer to scrape books data from <a href="https://kobo.com">kobo.com</a>.
+
+[![Dependencies](https://img.shields.io/david/hill84/kobo-scraper.svg)](https://david-dm.org/hill84/kobo-scraper)
+[![DevDependencies](https://img.shields.io/david/dev/hill84/kobo-scraper.svg)](https://david-dm.org/hill84/kobo-scraper?type=dev)
+![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/hill84/kobo-scraper.svg)
+
+</div>
 
 Run `npm install`. When finished, type `npm start` to run the scraping. You should see a new `books_[#].json` file for every page in the `/json` folder. Something like this: 
 
