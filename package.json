@@ -1,11 +1,11 @@
 {
   "name": "kobo-scraper",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "",
   "main": "kobo-scraper.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node kobo-scraper.js"
+    "start": "node --trace-warnings --unhandled-rejections=strict kobo-scraper.js"
   },
   "keywords": [
     "scraper",
@@ -14,8 +14,8 @@
     "books"
   ],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
-    "puppeteer": "^2.0.0"
+    "puppeteer": "^13.1.1"
   }
 }

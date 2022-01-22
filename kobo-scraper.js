@@ -2,27 +2,20 @@ const puppeteer = require('puppeteer');
 const fs = require('fs');
 const chalk = require('./chalk.js');
 
-const debreaks = s => s.replace(/(\r\n|\n|\r)/gm,'');
+const debreaks = (s) => s.replace(/(\r\n|\n|\r)/gm,'');
 
-const trim = s => s.replace(/^\s+|\s+$/g,'');
+const trim = (s) => s.replace(/^\s+|\s+$/g,'');
 
-const norm = s => debreaks(trim(s));
+const norm = (s) => debreaks(trim(s));
 
-const parsePrice = price => {
-  const euro = price.split('€');
-  if (euro.length > 1) {
-    return { "euro" : parseFloat(euro[1].trim().replace(',', '.')) };
-  }
-  return null;
-};
-
-const parseISBN_13 = ISBN_13 => {
+const parseISBN_13 = (ISBN_13) => {
   const parsedNum = parseFloat(ISBN_13);
   const isNum = !isNaN(parsedNum);
   return isNum ? parsedNum : 0;
 };
 
-const blockRequests = async page => {
+const blockRequests = async (page) => {
+  // console.log('blockRequests');
   await page.setRequestInterception(true);
 
   page.on('request', req => {
@@ -34,80 +27,31 @@ const blockRequests = async page => {
   });
 };
 
-const scrapeBook = async props => {
-  const { browser, url } = props;
-
+const scrapeBook = async ({ browser, url }) => {
+  // console.log('scrapeBook');
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1920, height: 1080 });
     await blockRequests(page);
     await page.goto(url);
   
-    const getValue = async props => {
-      const { xpath, property = 'textContent' } = props;
+    const getValue = async ({ xpath, property = 'textContent', json = false }) => {
       try {
         const [el] = await page.$x(xpath);
         const prop = await el.getProperty(property);
         const res = await prop.jsonValue();
-        return norm(res);
+        return json ? JSON.parse(res) : norm(res);
       } catch (err) {
-        return '';
+        return json ? {} : '';
       }
     };
-  
-    const ISBN_13 = await getValue({
-      xpath: '/html/body/div[2]/div[2]/div[8]/div/div[1]/div/ul/li[4]/span'
-    });
-  
-    const cover = await getValue({
-      xpath: '/html/body/div[2]/div[2]/div[4]/div/div/div[1]/div[1]/div[1]/div/div/div/img',
-      property: 'src'
-    });
-  
-    const title = await getValue({
-      xpath: '//*[@class="title"]'
-    });
-  
-    const subtitle = await getValue({
-      xpath: '//*[@class="subtitle"]'
-    });
-  
-    const author = await getValue({
-      xpath: '//a[@class="contributor-name"]'
-    });
-  
-    const pages_num = await getValue({
-      xpath: '//*[@id="about-this-book-widget"]/div/div[1]/div[2]/strong'
-    });
-  
-    const publisher = await getValue({
-      xpath: '/html/body/div[2]/div[2]/div[8]/div/div[1]/div/ul/li[1]'
-    });
-  
-    const imprint = await getValue({
-      xpath: '/html/body/div[2]/div[2]/div[8]/div/div[1]/div/ul/li[3]/a/span'
-    });
-  
-    const publication = await getValue({
-      xpath: '/html/body/div[2]/div[2]/div[8]/div/div[1]/div/ul/li[2]/span'
-    });
-  
-    const description = await getValue({
-      xpath: '//*[@id="synopsis"]/div/div'
-    });
-  
-    const price = await getValue({
-      xpath: '//*[@class="price"]'
-    });
-  
+
     /* const incipitHandler = await page.$x('//div[@class="instantpreview-hitbox"]'); 
   
     if (incipitHandler.length > 0) {
       await incipitHandler[0].click();
-  
       // await page.waitForSelector('#modal-content', { visible: true });
       await page.waitForXPath('//*[@id="instantpreview-reading-area"]').then(() => console.log('got it')).catch(err => console.error(err));
-    
     } else {
       throw new Error("Link not found");
     }
@@ -115,26 +59,100 @@ const scrapeBook = async props => {
     const incipit = await getValue({
       xpath: '//*[@id="instantpreview-reading-area"]'
     }); */
+  
+    // TODO: fix it!
+    const pages_num = await getValue({
+      xpath: '//*[@class="stat-desc"]/strong'
+    });
+  
+    const description = await getValue({
+      xpath: '//*[@id="synopsis"]/div/div'
+    });
 
-    const parsedISBN_13 = parseISBN_13(ISBN_13);
+    const metadata = await getValue({
+      xpath: '//*[@class="RatingAndReviewWidget"]/script',
+      json: true
+    });
+
+    const { author, name, publisher, workExample } = metadata || {};
   
     const book = {
-      ISBN_13: parsedISBN_13,
-      covers: [cover],
-      title,
-      subtitle,
-      author: { [author]: true },
-      pages_num,
-      publisher: publisher || imprint,
-      publication,
-      price: parsePrice(price),
-      description,
-      // incipit
+      // TODO: go Typescript, for God's sake!
+      // ISBN_13: string;
+      // authors: Record<string, boolean>;
+      // covers: string[];
+      // incipit: string;
+      // pages_num: number;
+      // price: Record<string, number>;
+      // publication: string; "2022-01-20T05:00:00Z"
+      // publisher: string;
+      // title: string;
+      // description: string;
     };
 
+    book.pages_num = pages_num ? Number(pages_num) : 0;
+
+    if (description) {
+      book.description = description;
+    }
+
+    if (name) book.title = name;
+
+    if (workExample) {
+      const { alternativeHeadline, datePublished, image, isbn, potentialAction } = workExample;
+
+      if (alternativeHeadline) {
+        book.subtitle = alternativeHeadline;
+      }
+      if (image) {
+        book.covers = [image];
+      }
+      if (isbn) {
+        book.ISBN_13 = parseISBN_13(isbn);
+      }
+      if (datePublished) {
+        book.publication = datePublished;
+      }
+      if (potentialAction?.expectsAcceptanceOf) {
+        const { expectsAcceptanceOf } = potentialAction;
+        if (expectsAcceptanceOf) {
+          if (Array.isArray(expectsAcceptanceOf)) {
+            if (!book.price) book.price = {};
+            expectsAcceptanceOf.forEach(({ price, priceCurrency }) => {
+              book.price[priceCurrency] = price;
+            });
+          } else {
+            const { price, priceCurrency } = expectsAcceptanceOf;
+            book.price = { [priceCurrency]: price };
+          }
+        }
+      }
+    }
+
+    if (author) {
+      if (Array.isArray(author)) {
+        if (!book.authors) book.authors = {};
+        author.forEach(({ name }) => {
+          book.authors[name] = true;
+        });
+      } else {
+        book.authors = { [author.name]: true };
+      }
+    }
+
+    if (publisher) {
+      if (Array.isArray(publisher)) {
+        book.publisher = publisher[0].name;
+      } else {
+        book.publisher = publisher.name;
+      }
+    }
+
     await page.close();
+
+    // console.log({ book });
     
-    if (book.ISBN_13 && book.title && book.pages_num && book.author && book.publisher) {
+    if (book.ISBN_13) {
       return book;
     }
   } catch (err) {
@@ -142,9 +160,8 @@ const scrapeBook = async props => {
   }
 };
 
-const nextPage = async props => {
-  const { browser, pageIndex, page, xpath } = props;
-
+const nextPage = async ({ browser, pageIndex, page, xpath }) => {
+  // console.log('nextPage');
   const [nextPage] = await page.$x(xpath);
   if (nextPage) {
     const prop = await nextPage.getProperty('href');
@@ -159,9 +176,8 @@ const nextPage = async props => {
   }
 };
 
-const getLinks = async props => {
-  const { page, xpath, url } = props;
-
+const getLinks = async ({ page, xpath, url }) => {
+  // console.log('getLinks');
   await page.goto(url);
 
   const elements = await page.$x(xpath);
@@ -178,9 +194,10 @@ const getLinks = async props => {
   }
 };
 
-const scrapeBooks = async props => {
-  const { browser, pageIndex = 1, url } = props;
+const scrapeBooks = async ({ browser, pageIndex = 1, url }) => {
+  // console.log('scrapeBooks');
   const page = await browser.newPage();
+  
   await page.goto(url);
 
   blockRequests(page);
@@ -194,15 +211,16 @@ const scrapeBooks = async props => {
   });
 
   if (links) {
-    // console.log(links);
     const books = [];
 
     for (const index in links) {
       const link = links[index];
       const segment = link.substring(link.lastIndexOf('/') + 1);
-      console.log(chalk.FgWhite, `${Number(index) + 1} of ${links.length}: ${segment}`, chalk.Reset);
+      
+      console.log(chalk.FgCyan, `${Number(index) + 1} of ${links.length}: ${segment}`, chalk.Reset);
+      
       const book = await scrapeBook({ browser, url: link });
-      // const book = { test: 'test' };
+
       if (book) books.push(book);
     }
     
@@ -222,15 +240,17 @@ const scrapeBooks = async props => {
       page,
       xpath: '//a[@class="next"]'
     });
+  } else {
+    console.log(chalk.BgRed, 'No links', chalk.Reset);
   }
 };
 
 (async () => {  
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await puppeteer.launch({ headless: false }); // TODO: fix headless: true
   
-  const entryPoint = 'https://www.kobo.com/it/it/list/le-nostre-novita/bffF8FuYXEG3kcdpSnLkjg?fclanguages=it';
+  const url = 'https://www.kobo.com/it/it/list/le-nostre-novita/bffF8FuYXEG3kcdpSnLkjg?fclanguages=it';
 
-  await scrapeBooks({ browser, url: entryPoint });
+  await scrapeBooks({ browser, url });
 
   await browser.close();
 })();

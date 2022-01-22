@@ -4,8 +4,6 @@
   
 **Kobo scraper** is a Node.js service that uses puppeteer to scrape books data from <a href="https://kobo.com">kobo.com</a>.
 
-[![Dependencies](https://img.shields.io/david/hill84/kobo-scraper.svg)](https://david-dm.org/hill84/kobo-scraper)
-[![DevDependencies](https://img.shields.io/david/dev/hill84/kobo-scraper.svg)](https://david-dm.org/hill84/kobo-scraper?type=dev)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/hill84/kobo-scraper.svg)
 
 </div>
@@ -28,7 +26,7 @@ Run `npm install`. When finished, type `npm start` to run the scraping. You shou
     "publisher": "Sellerio Editore",
     "publication": "9 gennaio 2020",
     "price": {
-      "euro": 9.99
+      "EUR": 9.99
     },
     "description": "Una nuova indagine per Rocco Schiavone costretto ad indagare da..."
   }
