@@ -4,11 +4,12 @@
   
 **Kobo scraper** is a Node.js service that uses puppeteer to scrape books data from <a href="https://kobo.com">kobo.com</a>.
 
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/facebook/react/blob/main/LICENSE)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/hill84/kobo-scraper.svg)
 
 </div>
 
-Run `npm install`. When finished, type `npm start` to run the scraping. You should see a new `books_[#].json` file for every page in the `/json` folder. Something like this: 
+Run `npm install`, then `npm run start`. You should see a new `books_[#].json` file for every page in the `/json` folder. Something like this: 
 
 ```json
 [
@@ -22,9 +23,9 @@ Run `npm install`. When finished, type `npm start` to run the scraping. You shou
     "author": {
       "Antonio Manzini": true
     },
-    "pages_num": "258",
+    "pages_num": 258,
     "publisher": "Sellerio Editore",
-    "publication": "9 gennaio 2020",
+    "publication": "2022-01-20T05:00:00Z",
     "price": {
       "EUR": 9.99
     },
