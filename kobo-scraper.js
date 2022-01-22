@@ -76,18 +76,21 @@ const scrapeBook = async ({ browser, url }) => {
 
     const { author, name, publisher, workExample } = metadata || {};
   
+    // TODO: go Typescript, for God's sake!
     const book = {
-      // TODO: go Typescript, for God's sake!
-      // ISBN_13: string;
+      // ISBN_13: number;
       // authors: Record<string, boolean>;
       // covers: string[];
+      // description: string;
       // incipit: string;
       // pages_num: number;
       // price: Record<string, number>;
-      // publication: string; "2022-01-20T05:00:00Z"
+      // publication: string; // "2022-01-20T05:00:00Z"
       // publisher: string;
       // title: string;
-      // description: string;
+      covers: [],
+      subtitle: '',
+      title: '',
     };
 
     book.pages_num = pages_num ? Number(pages_num) : 0;
@@ -96,23 +99,29 @@ const scrapeBook = async ({ browser, url }) => {
       book.description = description;
     }
 
-    if (name) book.title = name;
+    if (name) {
+      book.title = name;
+    }
 
     if (workExample) {
       const { alternativeHeadline, datePublished, image, isbn, potentialAction } = workExample;
 
+      if (image) {
+        book.covers.push(image);
+      }
+      
       if (alternativeHeadline) {
         book.subtitle = alternativeHeadline;
       }
-      if (image) {
-        book.covers = [image];
-      }
+
       if (isbn) {
         book.ISBN_13 = parseISBN_13(isbn);
       }
+
       if (datePublished) {
         book.publication = datePublished;
       }
+
       if (potentialAction?.expectsAcceptanceOf) {
         const { expectsAcceptanceOf } = potentialAction;
         if (expectsAcceptanceOf) {
@@ -147,10 +156,10 @@ const scrapeBook = async ({ browser, url }) => {
         book.publisher = publisher.name;
       }
     }
+    
+    // console.log({ book });
 
     await page.close();
-
-    // console.log({ book });
     
     if (book.ISBN_13) {
       return book;
